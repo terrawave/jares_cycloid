@@ -1,0 +1,12 @@
+{
+  "water": {
+    "delay": 1,
+    "duration": 11,
+    "cycles": 81
+  },
+  "drain": {
+    "delay": 1,
+    "duration": 5,
+    "cycles": 81
+  }
+}
