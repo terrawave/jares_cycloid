@@ -8,23 +8,23 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 class DatabaseManager:
-    """SQLite 데이터베이스 관리"""
+    """SQLite ë°ì´í„°ë² ì´ìŠ¤ ê´€ë¦¬"""
     
     def __init__(self, db_path: str = "sensor_data.db"):
         self.db_path = db_path
         self.conn = None
-        self.last_energy_value = None  # 마지막 누적전력량 저장
-        self.last_energy_time = None   # 마지막 측정 시간
+        self.last_energy_value = None  # ë§ˆì§€ë§‰ ëˆ„ì ì „ë ¥ëŸ‰ ì €ìž¥
+        self.last_energy_time = None   # ë§ˆì§€ë§‰ ì¸¡ì • ì‹œê°„
         self.init_database()
     
     def init_database(self):
-        """데이터베이스 초기화 및 테이블 생성"""
+        """ë°ì´í„°ë² ì´ìŠ¤ ì´ˆê¸°í™” ë° í…Œì´ë¸” ìƒì„±"""
         try:
             self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
             self.conn.row_factory = sqlite3.Row
             cursor = self.conn.cursor()
             
-            # 센서 데이터 테이블
+            # ì„¼ì„œ ë°ì´í„° í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sensor_data (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +38,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 실시간 전력 데이터 테이블 (차트용)
+            # ì‹¤ì‹œê°„ ì „ë ¥ ë°ì´í„° í…Œì´ë¸” (ì°¨íŠ¸ìš©)
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS power_realtime (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +51,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 시간별 전력 사용량 테이블
+            # ì‹œê°„ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS energy_hourly (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,7 +64,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 일별 전력 사용량 테이블
+            # ì¼ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS energy_daily (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +75,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 월별 전력 사용량 테이블
+            # ì›”ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS energy_monthly (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,7 +88,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 누적전력량 추적 테이블
+            # ëˆ„ì ì „ë ¥ëŸ‰ ì¶”ì  í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS energy_tracking (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -97,7 +97,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 릴레이 로그 테이블
+            # ë¦´ë ˆì´ ë¡œê·¸ í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS relay_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,7 +109,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 시스템 로그 테이블
+            # ì‹œìŠ¤í…œ ë¡œê·¸ í…Œì´ë¸”
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS system_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,7 +120,7 @@ class DatabaseManager:
                 )
             ''')
             
-            # 인덱스 생성
+            # ì¸ë±ìŠ¤ ìƒì„±
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_sensor_timestamp ON sensor_data(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_sensor_device ON sensor_data(device)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_power_realtime_timestamp ON power_realtime(timestamp)')
@@ -133,7 +133,7 @@ class DatabaseManager:
             self.conn.commit()
             logger.info(f"Database initialized: {self.db_path}")
             
-            # 마지막 누적전력량 값 로드
+            # ë§ˆì§€ë§‰ ëˆ„ì ì „ë ¥ëŸ‰ ê°’ ë¡œë“œ
             self._load_last_energy_value()
             
         except Exception as e:
@@ -141,7 +141,7 @@ class DatabaseManager:
             raise
     
     def _load_last_energy_value(self):
-        """마지막 누적전력량 값 로드"""
+        """ë§ˆì§€ë§‰ ëˆ„ì ì „ë ¥ëŸ‰ ê°’ ë¡œë“œ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
@@ -158,46 +158,46 @@ class DatabaseManager:
     
     def save_energy_reading(self, energy_kwh: float, power_w: float = None):
         """
-        누적전력량 읽기 및 사용량 계산
+        ëˆ„ì ì „ë ¥ëŸ‰ ì½ê¸° ë° ì‚¬ìš©ëŸ‰ ê³„ì‚°
         
         Args:
-            energy_kwh: 현재 누적전력량 (kWh)
-            power_w: 현재 전력 (W)
+            energy_kwh: í˜„ìž¬ ëˆ„ì ì „ë ¥ëŸ‰ (kWh)
+            power_w: í˜„ìž¬ ì „ë ¥ (W)
         """
         try:
             now = datetime.now()
             cursor = self.conn.cursor()
             
-            # 현재 누적값 저장
+            # í˜„ìž¬ ëˆ„ì ê°’ ì €ìž¥
             cursor.execute('''
                 INSERT INTO energy_tracking (timestamp, energy_value)
                 VALUES (?, ?)
             ''', (now.isoformat(), energy_kwh))
             
-            # 이전 값이 있으면 사용량 계산
+            # ì´ì „ ê°’ì´ ìžˆìœ¼ë©´ ì‚¬ìš©ëŸ‰ ê³„ì‚°
             if self.last_energy_value is not None and self.last_energy_time is not None:
-                # 사용량 계산 (kWh)
+                # ì‚¬ìš©ëŸ‰ ê³„ì‚° (kWh)
                 energy_used = energy_kwh - self.last_energy_value
                 
-                # 음수 방지 (센서 리셋 등)
+                # ìŒìˆ˜ ë°©ì§€ (ì„¼ì„œ ë¦¬ì…‹ ë“±)
                 if energy_used < 0:
                     energy_used = 0
                     logger.warning(f"Negative energy usage detected, resetting. Current: {energy_kwh}, Last: {self.last_energy_value}")
                 
-                # 시간 차이 계산
+                # ì‹œê°„ ì°¨ì´ ê³„ì‚°
                 time_diff = (now - self.last_energy_time).total_seconds() / 3600  # hours
                 
                 if time_diff > 0 and energy_used > 0:
-                    # 시간별 저장
+                    # ì‹œê°„ë³„ ì €ìž¥
                     self._save_hourly_energy(now, energy_used, power_w)
                     
-                    # 일별 누적
+                    # ì¼ë³„ ëˆ„ì 
                     self._update_daily_energy(now.strftime('%Y-%m-%d'), energy_used, power_w)
                     
-                    # 월별 누적
+                    # ì›”ë³„ ëˆ„ì 
                     self._update_monthly_energy(now.year, now.month, energy_used, power_w)
             
-            # 현재 값을 마지막 값으로 저장
+            # í˜„ìž¬ ê°’ì„ ë§ˆì§€ë§‰ ê°’ìœ¼ë¡œ ì €ìž¥
             self.last_energy_value = energy_kwh
             self.last_energy_time = now
             
@@ -207,7 +207,7 @@ class DatabaseManager:
             logger.error(f"Failed to save energy reading: {e}")
     
     def _save_hourly_energy(self, timestamp: datetime, energy_kwh: float, power_w: float = None):
-        """시간별 전력 사용량 저장"""
+        """ì‹œê°„ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ ì €ìž¥"""
         try:
             cursor = self.conn.cursor()
             date_str = timestamp.strftime('%Y-%m-%d')
@@ -230,7 +230,7 @@ class DatabaseManager:
             logger.error(f"Failed to save hourly energy: {e}")
     
     def _update_daily_energy(self, date_str: str, energy_kwh: float, power_w: float = None):
-        """일별 전력 사용량 업데이트"""
+        """ì¼ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ ì—…ë°ì´íŠ¸"""
         try:
             cursor = self.conn.cursor()
             
@@ -251,7 +251,7 @@ class DatabaseManager:
             logger.error(f"Failed to update daily energy: {e}")
     
     def _update_monthly_energy(self, year: int, month: int, energy_kwh: float, power_w: float = None):
-        """월별 전력 사용량 업데이트"""
+        """ì›”ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ ì—…ë°ì´íŠ¸"""
         try:
             cursor = self.conn.cursor()
             
@@ -273,7 +273,7 @@ class DatabaseManager:
     
     def save_sensor_data(self, device: str, temperature: float = None, 
                         humidity: float = None, co2: int = None, lux: float = None):
-        """센서 데이터 저장"""
+        """ì„¼ì„œ ë°ì´í„° ì €ìž¥"""
         try:
             cursor = self.conn.cursor()
             timestamp = datetime.now().isoformat()
@@ -292,7 +292,7 @@ class DatabaseManager:
     
     def save_power_realtime(self, device: str, voltage: float = None, 
                            current: float = None, power: float = None):
-        """실시간 전력 데이터 저장 (차트용)"""
+        """ì‹¤ì‹œê°„ ì „ë ¥ ë°ì´í„° ì €ìž¥ (ì°¨íŠ¸ìš©)"""
         try:
             cursor = self.conn.cursor()
             timestamp = datetime.now().isoformat()
@@ -310,7 +310,7 @@ class DatabaseManager:
             return None
     
     def save_relay_log(self, relay: int, action: str, state: str):
-        """릴레이 로그 저장"""
+        """ë¦´ë ˆì´ ë¡œê·¸ ì €ìž¥"""
         try:
             cursor = self.conn.cursor()
             timestamp = datetime.now().isoformat()
@@ -328,7 +328,7 @@ class DatabaseManager:
             return None
     
     def save_system_log(self, log_type: str, message: str):
-        """시스템 로그 저장"""
+        """ì‹œìŠ¤í…œ ë¡œê·¸ ì €ìž¥"""
         try:
             cursor = self.conn.cursor()
             timestamp = datetime.now().isoformat()
@@ -345,10 +345,10 @@ class DatabaseManager:
             logger.error(f"Failed to save system log: {e}")
             return None
     
-    # ========== 조회 메서드 ==========
+    # ========== ì¡°íšŒ ë©”ì„œë“œ ==========
     
     def get_sensor_data(self, limit: int = 100, offset: int = 0, device: str = None):
-        """센서 데이터 조회"""
+        """ì„¼ì„œ ë°ì´í„° ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             
@@ -374,7 +374,7 @@ class DatabaseManager:
             return []
     
     def get_power_realtime(self, limit: int = 100, offset: int = 0):
-        """실시간 전력 데이터 조회"""
+        """ì‹¤ì‹œê°„ ì „ë ¥ ë°ì´í„° ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
@@ -391,7 +391,7 @@ class DatabaseManager:
             return []
     
     def get_energy_hourly(self, date: str = None, limit: int = 24):
-        """시간별 전력 사용량 조회"""
+        """ì‹œê°„ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             
@@ -402,7 +402,7 @@ class DatabaseManager:
                     ORDER BY hour
                 ''', (date,))
             else:
-                # 최근 24시간
+                # ìµœê·¼ 24ì‹œê°„
                 cursor.execute('''
                     SELECT * FROM energy_hourly 
                     ORDER BY date DESC, hour DESC 
@@ -417,7 +417,7 @@ class DatabaseManager:
             return []
     
     def get_energy_daily(self, start_date: str = None, end_date: str = None, limit: int = 30):
-        """일별 전력 사용량 조회"""
+        """ì¼ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             
@@ -442,7 +442,7 @@ class DatabaseManager:
             return []
     
     def get_energy_monthly(self, year: int = None, limit: int = 12):
-        """월별 전력 사용량 조회"""
+        """ì›”ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             
@@ -467,7 +467,7 @@ class DatabaseManager:
             return []
     
     def get_relay_logs(self, limit: int = 100, offset: int = 0):
-        """릴레이 로그 조회"""
+        """ë¦´ë ˆì´ ë¡œê·¸ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
@@ -484,7 +484,7 @@ class DatabaseManager:
             return []
     
     def get_system_logs(self, limit: int = 100, offset: int = 0):
-        """시스템 로그 조회"""
+        """ì‹œìŠ¤í…œ ë¡œê·¸ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('''
@@ -501,7 +501,7 @@ class DatabaseManager:
             return []
     
     def get_sensor_data_by_period(self, start_date: str, end_date: str, device: str = None):
-        """기간별 센서 데이터 조회"""
+        """ê¸°ê°„ë³„ ì„¼ì„œ ë°ì´í„° ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             
@@ -526,10 +526,10 @@ class DatabaseManager:
             logger.error(f"Failed to get sensor data by period: {e}")
             return []
     
-    # ========== 통계 메서드 ==========
+    # ========== í†µê³„ ë©”ì„œë“œ ==========
     
     def get_sensor_count(self):
-        """센서 데이터 개수 조회"""
+        """ì„¼ì„œ ë°ì´í„° ê°œìˆ˜ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('SELECT COUNT(*) as count FROM sensor_data')
@@ -540,7 +540,7 @@ class DatabaseManager:
             return 0
     
     def get_relay_log_count(self):
-        """릴레이 로그 개수 조회"""
+        """ë¦´ë ˆì´ ë¡œê·¸ ê°œìˆ˜ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('SELECT COUNT(*) as count FROM relay_logs')
@@ -551,7 +551,7 @@ class DatabaseManager:
             return 0
     
     def get_system_log_count(self):
-        """시스템 로그 개수 조회"""
+        """ì‹œìŠ¤í…œ ë¡œê·¸ ê°œìˆ˜ ì¡°íšŒ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('SELECT COUNT(*) as count FROM system_logs')
@@ -561,10 +561,10 @@ class DatabaseManager:
             logger.error(f"Failed to get system log count: {e}")
             return 0
     
-    # ========== 삭제 메서드 ==========
+    # ========== ì‚­ì œ ë©”ì„œë“œ ==========
     
     def clear_sensor_data(self):
-        """센서 데이터 삭제"""
+        """ì„¼ì„œ ë°ì´í„° ì‚­ì œ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('DELETE FROM sensor_data')
@@ -576,7 +576,7 @@ class DatabaseManager:
             return False
     
     def clear_power_realtime(self):
-        """실시간 전력 데이터 삭제"""
+        """ì‹¤ì‹œê°„ ì „ë ¥ ë°ì´í„° ì‚­ì œ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('DELETE FROM power_realtime')
@@ -588,7 +588,7 @@ class DatabaseManager:
             return False
     
     def clear_relay_logs(self):
-        """릴레이 로그 삭제"""
+        """ë¦´ë ˆì´ ë¡œê·¸ ì‚­ì œ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('DELETE FROM relay_logs')
@@ -600,7 +600,7 @@ class DatabaseManager:
             return False
     
     def clear_system_logs(self):
-        """시스템 로그 삭제"""
+        """ì‹œìŠ¤í…œ ë¡œê·¸ ì‚­ì œ"""
         try:
             cursor = self.conn.cursor()
             cursor.execute('DELETE FROM system_logs')
@@ -612,7 +612,7 @@ class DatabaseManager:
             return False
     
     def close(self):
-        """데이터베이스 연결 종료"""
+        """ë°ì´í„°ë² ì´ìŠ¤ ì—°ê²° ì¢…ë£Œ"""
         if self.conn:
             self.conn.close()
             logger.info("Database connection closed")

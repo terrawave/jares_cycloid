@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ì „ë‚¨ë†ì—…ê¸°ìˆ ì› ìˆ˜ì§ë†ìž¥ ì œì–´ ì‹œìŠ¤í…œ</title>
+    <link rel="icon" type="image/x-icon" href="/static/images/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/images/android-chrome-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <!-- í—¤ë” with ë©”ì¸ íƒ­ -->
+        <header class="main-header">
+            <div class="header-brand">
+                <img src="/static/images/logo.png" alt="TerraWave" class="brand-logo">
+                <h1>ì „ë‚¨ë†ì—…ê¸°ìˆ ì› ìˆ˜ì§ë†ìž¥ ì œì–´ ì‹œìŠ¤í…œ</h1>
+            </div>
+            
+            <!-- ë©”ì¸ íƒ­ ë©”ë‰´ -->
+            <nav class="main-tab-menu">
+                <button class="main-tab-btn active" onclick="switchMainTab('dashboard')">
+                    ðŸ“Š ëŒ€ì‹œë³´ë“œ
+                </button>
+                <button class="main-tab-btn" onclick="switchMainTab('data-analysis')">
+                    ðŸ“ˆ ë°ì´í„° ë¶„ì„
+                </button>
+                <button class="main-tab-btn" onclick="switchMainTab('schedule')">
+                    â° ìŠ¤ì¼€ì¤„
+                </button>
+            </nav>
+            
+            <div class="header-controls">
+                <div class="connection-status">
+                    <span id="connection-indicator" class="status-indicator"></span>
+                    <span id="connection-text">ì—°ê²° ì¤‘...</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- ë©”ì¸ ì»¨í…ì¸  -->
+        <main class="main-content">
+            
+            <!-- ========== ëŒ€ì‹œë³´ë“œ íƒ­ ========== -->
+            <div id="dashboard-main-tab" class="main-tab-content active">
+                <!-- ì£¼ìš” ì œì–´ ì„¹ì…˜ -->
+                <section class="primary-controls">
+<!-- ëª¨í„° ì œì–´ -->
+<div class="control-card">
+    <div class="card-header-with-status">
+        <h3 class="card-title">âš™ï¸ ëª¨í„° ì œì–´</h3>
+        <div class="mode-status">
+            <span id="motor-mode-badge" class="mode-badge auto">ðŸŸ¢ ìžë™ ëª¨ë“œ</span>
+            <button class="btn btn-sm btn-secondary" id="motor-auto-btn" onclick="setMotorAutoMode()" style="display:none;">
+                ðŸ”„ ìžë™ ëª¨ë“œë¡œ ì „í™˜
+            </button>
+        </div>
+    </div>
+    
+    <div class="schedule-preview" id="motor-schedule-preview">
+        <span class="schedule-icon">ðŸ“…</span>
+        <span class="schedule-text" id="motor-next-schedule">ìŠ¤ì¼€ì¤„ ì—†ìŒ</span>
+    </div>
+    
+    <div class="motor-controls">
+        <div class="btn-group mb-2">
+            <button class="btn btn-speed" data-speed="1" onclick="setMotorSpeed(1)">ì†ë„ 1</button>
+            <button class="btn btn-speed" data-speed="2" onclick="setMotorSpeed(2)">ì†ë„ 2</button>
+            <button class="btn btn-speed" data-speed="3" onclick="setMotorSpeed(3)">ì†ë„ 3</button>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-direction" data-direction="forward" onclick="setMotorDirection('forward')">â–¶ ì •íšŒì „</button>
+            <button class="btn btn-direction active" data-direction="stop" onclick="setMotorDirection('stop')">â¬› ì •ì§€</button>
+            <button class="btn btn-direction" data-direction="reverse" onclick="setMotorDirection('reverse')">â—€ ì—­íšŒì „</button>
+        </div>
+    </div>
+    
+    <!-- âœ… ì—¬ê¸°ì— ëª¨í„° ì†ë„ ì„¼ì„œê°’ í‘œì‹œ ì¶”ê°€ -->
+    <div class="sensor-grid" style="margin-top: 15px;">
+        <div class="sensor-item">
+            <div class="sensor-label">ëª¨í„° ì†ë„ê°’</div>
+            <div class="sensor-value-group">
+                <span class="sensor-value" id="motor-speed-adc">0</span>
+                <span class="sensor-unit">ADC</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+                    <!-- LED ë° ì–‘ì•¡ í†µí•© ì œì–´ -->
+                    <div class="control-card">
+                        <div class="card-header-with-status">
+                            <h3 class="card-title">ðŸ’¡ LED / ì–‘ì•¡ ì œì–´</h3>
+                            <div class="mode-status">
+                                <span id="led-mode-badge" class="mode-badge auto">ðŸŸ¢ ìžë™ ëª¨ë“œ</span>
+                                <button class="btn btn-sm btn-secondary" id="led-auto-btn" onclick="setLEDAutoMode()" style="display:none;">
+                                    ðŸ”„ ìžë™ ëª¨ë“œë¡œ ì „í™˜
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="schedule-preview" id="led-schedule-preview">
+                            <span class="schedule-icon">ðŸ“…</span>
+                            <span class="schedule-text" id="led-next-schedule">ìŠ¤ì¼€ì¤„ ì—†ìŒ</span>
+                        </div>
+                        
+                        <div class="led-controls mb-3">
+                            <div class="btn-group">
+                                <button class="btn btn-led" data-relay="10" onclick="toggleLED(10)">
+                                    <span class="icon">ðŸ’¡</span>
+                                    <span>LED 1</span>
+                                </button>
+                                <button class="btn btn-led" data-relay="11" onclick="toggleLED(11)">
+                                    <span class="icon">ðŸ’¡</span>
+                                    <span>LED 2</span>
+                                </button>
+                                <button class="btn btn-led" data-relay="12" onclick="toggleLED(12)">
+                                    <span class="icon">ðŸ’¡</span>
+                                    <span>LED 3</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="nutrient-controls">
+                            <div class="btn-group">
+                                <button class="btn btn-nutrient" data-relay="3" onclick="toggleNutrient(3)">
+                                    <span class="icon">ðŸš°</span>
+                                    <span>ë¬¼íƒ±í¬</span>
+                                </button>
+                                <button class="btn btn-nutrient" data-relay="4" onclick="toggleNutrient(4)">
+                                    <span class="icon">ðŸ’§</span>
+                                    <span>ê¸‰ìˆ˜ë°¸ë¸Œ</span>
+                                </button>
+                                <button class="btn btn-nutrient" data-relay="5" onclick="toggleNutrient(5)">
+                                    <span class="icon">ðŸ§ª</span>
+                                    <span>ì–‘ì•¡</span>
+                                </button>
+                                <button class="btn btn-nutrient" data-relay="6" onclick="toggleNutrient(6)">
+                                    <span class="icon">ðŸš¿</span>
+                                    <span>ë¬¼ë°¸ë¸Œ</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+<!-- ìžë™ ê¸‰ìˆ˜ ì‹œìŠ¤í…œ -->
+<section class="water-section">
+    <div class="control-card">
+        <div class="card-header-with-status">
+            <h3 class="card-title">ðŸ’§ ìžë™ ê¸‰ìˆ˜ ì‹œìŠ¤í…œ</h3>
+            <div class="water-status-badge">
+                <span id="water-status" class="status-badge">ì •ì§€</span>
+            </div>
+        </div>
+        
+        <div class="water-controls-inline">
+            <div class="water-config-inline">
+                <div class="input-group-inline">
+                    <label>ëŒ€ê¸°(ì´ˆ)</label>
+                    <input type="number" id="water-delay" value="5" min="1" class="input-small">
+                </div>
+                <div class="input-group-inline">
+                    <label>ê¸‰ìˆ˜(ì´ˆ)</label>
+                    <input type="number" id="water-duration" value="10" min="1" class="input-small">
+                </div>
+                <div class="input-group-inline">
+                    <label>ë°˜ë³µ</label>
+                    <input type="number" id="water-cycles" value="3" min="1" class="input-small">
+                </div>
+            </div>
+            <div class="water-buttons">
+                <button class="btn btn-primary" onclick="configWater()">ì„¤ì •</button>
+                <button class="btn btn-success" onclick="startWater()">ì‹œìž‘</button>
+                <button class="btn btn-danger" onclick="stopWater()">ì •ì§€</button>
+            </div>
+        </div>
+        
+        <!-- âœ… ì—¬ê¸°ì— ê·¼ì ‘ì„¼ì„œ í‘œì‹œ ì¶”ê°€ -->
+        <div class="sensor-grid" style="margin-top: 15px;">
+            <div class="sensor-item">
+                <div class="sensor-label">ê·¼ì ‘ì„¼ì„œ</div>
+                <div class="sensor-value-group">
+                    <span class="sensor-value" id="proximity-sensor" style="color: var(--color-danger);">ë¯¸ê°ì§€</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+                <!-- ì„¼ì„œ ëª¨ë‹ˆí„°ë§ ê·¸ë¦¬ë“œ -->
+                <section class="sensors-grid">
+                    <!-- ìŠ¬ë ˆì´ë¸Œ ì¹´ë“œë“¤ì´ JavaScriptë¡œ ë™ì  ìƒì„±ë¨ -->
+                    <div id="slaves-container" class="slaves-items">
+                        <!-- ìŠ¬ë ˆì´ë¸Œ ì¹´ë“œë“¤ì´ JavaScriptã„¹ë¡œ ìƒì„±ë¨ -->
+                    </div>
+                    <!-- ì „ë ¥ ëª¨ë‹ˆí„° -->
+                    <div class="sensor-card">
+                        <h3 class="card-title">âš¡ ì „ë ¥</h3>
+                        <div class="sensor-grid">
+                            <div class="sensor-item">
+                                <div class="sensor-label">ì „ì••</div>
+                                <div class="sensor-value-group">
+                                    <span class="sensor-value" id="voltage">0</span>
+                                    <span class="sensor-unit">V</span>
+                                </div>
+                            </div>
+                            <div class="sensor-item">
+                                <div class="sensor-label">ì „ë¥˜</div>
+                                <div class="sensor-value-group">
+                                    <span class="sensor-value" id="current">0</span>
+                                    <span class="sensor-unit">A</span>
+                                </div>
+                            </div>
+                            <div class="sensor-item">
+                                <div class="sensor-label">ì „ë ¥</div>
+                                <div class="sensor-value-group">
+                                    <span class="sensor-value" id="power">0</span>
+                                    <span class="sensor-unit">W</span>
+                                </div>
+                            </div>
+                            <div class="sensor-item">
+                                <div class="sensor-label">ì£¼íŒŒìˆ˜</div>
+                                <div class="sensor-value-group">
+                                    <span class="sensor-value" id="frequency">0</span>
+                                    <span class="sensor-unit">Hz</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- í™˜ê²½ ì„¼ì„œ ì¹´ë“œë“¤ (ë§ˆìŠ¤í„° ë° ìŠ¬ë ˆì´ë¸ŒëŠ” JavaScriptë¡œ ë™ì  ìƒì„±) -->
+                </section>
+            </div>
+            
+            <!-- ========== ë°ì´í„° ë¶„ì„ íƒ­ ========== -->
+            <div id="data-analysis-main-tab" class="main-tab-content">
+                <div class="control-card">
+                    <h3 class="card-title">ðŸ“Š ë°ì´í„° ë¶„ì„</h3>
+                    
+                    <!-- ì„œë¸Œ íƒ­ ë©”ë‰´ -->
+                    <div class="tab-menu">
+                        <button class="tab-btn active" onclick="switchTab('charts')">ðŸ“Š ì‹¤ì‹œê°„ ê·¸ëž˜í”„</button>
+                        <button class="tab-btn" onclick="switchTab('energy-usage')">âš¡ ì „ë ¥ ì‚¬ìš©ëŸ‰</button>
+                        <button class="tab-btn" onclick="switchTab('sensor-data')">ì„¼ì„œ ë°ì´í„°</button>
+                        <button class="tab-btn" onclick="switchTab('system-logs')">ì‹œìŠ¤í…œ ë¡œê·¸</button>
+                        <button class="tab-btn" onclick="switchTab('relay-logs')">ë¦´ë ˆì´ ì œì–´ ë¡œê·¸</button>
+                    </div>
+
+                    <!-- ì‹¤ì‹œê°„ ê·¸ëž˜í”„ íƒ­ -->
+                    <div id="charts-tab" class="tab-content active">
+                        <div class="charts-grid">
+                            <div class="chart-wrapper"><canvas id="temperatureChart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="humidityChart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="co2Chart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="luxChart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="powerChart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="energyHourlyChart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="energyDailyChart"></canvas></div>
+                            <div class="chart-wrapper"><canvas id="energyMonthlyChart"></canvas></div>
+                        </div>
+                    </div>
+                    
+                    <!-- ì „ë ¥ ì‚¬ìš©ëŸ‰ íƒ­ -->
+                    <div id="energy-usage-tab" class="tab-content">
+                        <div class="energy-sections">
+                            <!-- ì „ë ¥ ì‚¬ìš© í†µê³„ -->
+                            <div class="data-section">
+                                <div class="data-header">
+                                    <div class="data-info">
+                                        <h4>ðŸ“ˆ ì „ë ¥ ì‚¬ìš© í†µê³„</h4>
+                                    </div>
+                                </div>
+                                <div class="stats-grid">
+                                    <div class="stat-card">
+                                        <div class="stat-label">ì˜¤ëŠ˜ ì‚¬ìš©ëŸ‰</div>
+                                        <div class="stat-value" id="stat-today">0 kWh</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label">ì´ë²ˆ ë‹¬ ì‚¬ìš©ëŸ‰</div>
+                                        <div class="stat-value" id="stat-month">0 kWh</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label">í‰ê·  ì¼ì¼ ì‚¬ìš©ëŸ‰</div>
+                                        <div class="stat-value" id="stat-daily-avg">0 kWh</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <div class="stat-label">ì˜ˆìƒ ì›” ìš”ê¸ˆ</div>
+                                        <div class="stat-value" id="stat-monthly-cost">0 ì›</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- ì‹œê°„ë³„ ì‚¬ìš©ëŸ‰ -->
+                            <div class="data-section">
+                                <div class="data-header">
+                                    <div class="data-info">
+                                        <h4>â° ì‹œê°„ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰</h4>
+                                        <span class="data-period">ì˜¤ëŠ˜</span>
+                                    </div>
+                                    <div class="data-actions">
+                                        <button class="btn btn-primary" onclick="downloadEnergyHourly()">ðŸ“¥ CSV ë‹¤ìš´ë¡œë“œ</button>
+                                    </div>
+                                </div>
+                                <div class="data-table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr><th>ì‹œê°„</th><th>ì‚¬ìš©ëŸ‰ (kWh)</th><th>í‰ê·  ì „ë ¥ (W)</th></tr>
+                                        </thead>
+                                        <tbody id="energy-hourly-body">
+                                            <tr><td colspan="3" style="text-align: center;">ë°ì´í„° ì—†ìŒ</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- ì¼ë³„ ì‚¬ìš©ëŸ‰ -->
+                            <div class="data-section">
+                                <div class="data-header">
+                                    <div class="data-info">
+                                        <h4>ðŸ“… ì¼ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰</h4>
+                                        <span class="data-period">ìµœê·¼ 30ì¼</span>
+                                    </div>
+                                    <div class="data-actions">
+                                        <button class="btn btn-primary" onclick="downloadEnergyDaily()">ðŸ“¥ CSV ë‹¤ìš´ë¡œë“œ</button>
+                                    </div>
+                                </div>
+                                <div class="data-table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr><th>ë‚ ì§œ</th><th>ì‚¬ìš©ëŸ‰ (kWh)</th><th>í‰ê·  ì „ë ¥ (W)</th><th>ì˜ˆìƒ ìš”ê¸ˆ</th></tr>
+                                        </thead>
+                                        <tbody id="energy-daily-body">
+                                            <tr><td colspan="4" style="text-align: center;">ë°ì´í„° ì—†ìŒ</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- ì›”ë³„ ì‚¬ìš©ëŸ‰ -->
+                            <div class="data-section">
+                                <div class="data-header">
+                                    <div class="data-info">
+                                        <h4>ðŸ“† ì›”ë³„ ì „ë ¥ ì‚¬ìš©ëŸ‰</h4>
+                                        <span class="data-period">ìµœê·¼ 12ê°œì›”</span>
+                                    </div>
+                                    <div class="data-actions">
+                                        <button class="btn btn-primary" onclick="downloadEnergyMonthly()">ðŸ“¥ CSV ë‹¤ìš´ë¡œë“œ</button>
+                                    </div>
+                                </div>
+                                <div class="data-table-container">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr><th>ë…„ì›”</th><th>ì‚¬ìš©ëŸ‰ (kWh)</th><th>í‰ê·  ì „ë ¥ (W)</th><th>ì˜ˆìƒ ìš”ê¸ˆ</th></tr>
+                                        </thead>
+                                        <tbody id="energy-monthly-body">
+                                            <tr><td colspan="4" style="text-align: center;">ë°ì´í„° ì—†ìŒ</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- ì„¼ì„œ ë°ì´í„° íƒ­ -->
+                    <div id="sensor-data-tab" class="tab-content">
+                        <div class="data-header">
+                            <div class="data-info">
+                                <span class="data-count">ì´ <span id="sensor-data-count">0</span>ê°œ ê¸°ë¡</span>
+                                <span class="data-period">ê¸°ë¡ ì£¼ê¸°: 1ë¶„</span>
+                            </div>
+                            <div class="data-actions">
+                                <button class="btn btn-primary" onclick="downloadSensorData()">ðŸ“¥ CSV ë‹¤ìš´ë¡œë“œ</button>
+                                <button class="btn btn-danger" onclick="clearSensorData()">ðŸ—‘ï¸ ë°ì´í„° ì‚­ì œ</button>
+                            </div>
+                        </div>
+                        <div class="data-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>ì‹œê°„</th><th>ìž¥ì¹˜</th><th>ì˜¨ë„(Â°C)</th><th>ìŠµë„(%)</th><th>CO2(ppm)</th><th>ì¡°ë„(lux)</th></tr>
+                                </thead>
+                                <tbody id="sensor-data-body">
+                                    <!-- ì„¼ì„œ ë°ì´í„°ê°€ ì—¬ê¸°ì— ì¶”ê°€ë¨ -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- ì‹œìŠ¤í…œ ë¡œê·¸ íƒ­ -->
+                    <div id="system-logs-tab" class="tab-content">
+                        <div class="data-header">
+                            <div class="data-info">
+                                <span class="data-count">ì´ <span id="system-log-count">0</span>ê°œ ë¡œê·¸</span>
+                            </div>
+                            <div class="data-actions">
+                                <button class="btn btn-primary" onclick="downloadSystemLogs()">ðŸ“¥ TXT ë‹¤ìš´ë¡œë“œ</button>
+                                <button class="btn btn-danger" onclick="clearSystemLogs()">ðŸ—‘ï¸ ë¡œê·¸ ì‚­ì œ</button>
+                            </div>
+                        </div>
+                        <div class="log-container" id="log-container">
+                            <!-- ë¡œê·¸ ë©”ì‹œì§€ê°€ ì—¬ê¸°ì— ì¶”ê°€ë¨ -->
+                        </div>
+                    </div>
+                    
+                    <!-- ë¦´ë ˆì´ ì œì–´ ë¡œê·¸ íƒ­ -->
+                    <div id="relay-logs-tab" class="tab-content">
+                        <div class="data-header">
+                            <div class="data-info">
+                                <span class="data-count">ì´ <span id="relay-log-count">0</span>ê°œ ê¸°ë¡</span>
+                            </div>
+                            <div class="data-actions">
+                                <button class="btn btn-primary" onclick="downloadRelayLogs()">ðŸ“¥ CSV ë‹¤ìš´ë¡œë“œ</button>
+                                <button class="btn btn-danger" onclick="clearRelayLogs()">ðŸ—‘ï¸ ë¡œê·¸ ì‚­ì œ</button>
+                            </div>
+                        </div>
+                        <div class="data-table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr><th>ì‹œê°„</th><th>ë¦´ë ˆì´</th><th>ë™ìž‘</th><th>ìƒíƒœ</th></tr>
+                                </thead>
+                                <tbody id="relay-log-body">
+                                    <!-- ë¦´ë ˆì´ ë¡œê·¸ê°€ ì—¬ê¸°ì— ì¶”ê°€ë¨ -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- ========== ìŠ¤ì¼€ì¤„ íƒ­ ========== -->
+            <div id="schedule-main-tab" class="main-tab-content">
+                <div class="control-card">
+                    <h3 class="card-title">â° ìŠ¤ì¼€ì¤„ ê´€ë¦¬</h3>
+                    
+                    <div class="schedule-sections">
+                        <!-- ëª¨í„° ìŠ¤ì¼€ì¤„ -->
+                        <div class="schedule-section">
+                            <h4 class="schedule-section-title">âš™ï¸ ëª¨í„° ì œì–´ ìŠ¤ì¼€ì¤„</h4>
+                            
+                            <div class="schedule-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>ì‹œìž‘ ì‹œê°„</label>
+                                        <input type="time" id="motor-start-time" class="input-field">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ì¢…ë£Œ ì‹œê°„</label>
+                                        <input type="time" id="motor-end-time" class="input-field">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ì†ë„</label>
+                                        <select id="motor-schedule-speed" class="input-field">
+                                            <option value="1">ì†ë„ 1</option>
+                                            <option value="2">ì†ë„ 2</option>
+                                            <option value="3">ì†ë„ 3</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ë°©í–¥</label>
+                                        <select id="motor-schedule-direction" class="input-field">
+                                            <option value="forward">ì •íšŒì „</option>
+                                            <option value="reverse">ì—­íšŒì „</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label>ìž‘ë™ ìš”ì¼</label>
+                                        <div class="days-selector">
+                                            <label class="day-checkbox"><input type="checkbox" value="0" checked> ì›”</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="1" checked> í™”</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="2" checked> ìˆ˜</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="3" checked> ëª©</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="4" checked> ê¸ˆ</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="5" checked> í† </label>
+                                            <label class="day-checkbox"><input type="checkbox" value="6" checked> ì¼</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button class="btn btn-success" onclick="addMotorSchedule()">âž• ìŠ¤ì¼€ì¤„ ì¶”ê°€</button>
+                                </div>
+                            </div>
+                            
+                            <div class="schedule-list" id="motor-schedule-list">
+                                <!-- ëª¨í„° ìŠ¤ì¼€ì¤„ ëª©ë¡ -->
+                            </div>
+                        </div>
+                        
+                        <!-- LED ìŠ¤ì¼€ì¤„ -->
+                        <div class="schedule-section">
+                            <h4 class="schedule-section-title">ðŸ’¡ LED ì œì–´ ìŠ¤ì¼€ì¤„</h4>
+                            
+                            <div class="schedule-form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>ì‹œìž‘ ì‹œê°„ (ì¼œê¸°)</label>
+                                        <input type="time" id="led-on-time" class="input-field">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>ì¢…ë£Œ ì‹œê°„ (ë„ê¸°)</label>
+                                        <input type="time" id="led-off-time" class="input-field">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label>ì œì–´í•  LED</label>
+                                        <div class="led-selector">
+                                            <label class="led-checkbox"><input type="checkbox" value="10" checked> LED 1</label>
+                                            <label class="led-checkbox"><input type="checkbox" value="11" checked> LED 2</label>
+                                            <label class="led-checkbox"><input type="checkbox" value="12" checked> LED 3</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-row">
+                                    <div class="form-group full-width">
+                                        <label>ìž‘ë™ ìš”ì¼</label>
+                                        <div class="days-selector">
+                                            <label class="day-checkbox"><input type="checkbox" value="0" checked> ì›”</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="1" checked> í™”</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="2" checked> ìˆ˜</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="3" checked> ëª©</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="4" checked> ê¸ˆ</label>
+                                            <label class="day-checkbox"><input type="checkbox" value="5" checked> í† </label>
+                                            <label class="day-checkbox"><input type="checkbox" value="6" checked> ì¼</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-actions">
+                                    <button class="btn btn-success" onclick="addLEDSchedule()">âž• ìŠ¤ì¼€ì¤„ ì¶”ê°€</button>
+                                </div>
+                            </div>
+                            
+                            <div class="schedule-list" id="led-schedule-list">
+                                <!-- LED ìŠ¤ì¼€ì¤„ ëª©ë¡ -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -1,8 +1,28 @@
+# Python Dependencies for ESP32 Auto-Watering System
+
+# Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
+
+# Serial Communication
 pyserial==3.5
-aiofiles==23.2.1
-jinja2==3.1.2
-pydantic==2.5.0
-python-dotenv==1.0.0
+
+# Data Validation
+pydantic==2.4.2
+pydantic-settings==2.0.3
+
+# WebSocket
 websockets==12.0
+
+# Templating
+jinja2==3.1.2
+
+# Static Files
+aiofiles==23.2.1
+
+# Python Standard Library (included)
+# - asyncio
+# - sqlite3
+# - logging
+# - json
+# - datetime
