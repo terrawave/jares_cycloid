@@ -170,7 +170,7 @@ async def start_monitoring():
     while True:
         if serial_manager.is_connected:
             await serial_manager.send_command("JSON")
-        await asyncio.sleep(5)
+        await asyncio.sleep(1)
 
 # ==================== 기본 API 엔드포인트 ====================
 

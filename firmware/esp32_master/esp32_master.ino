@@ -97,6 +97,8 @@ uint8_t broadcastAddress[] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #define RELAY_DRAIN_VALVE 3   // 배수밸브
 
 // ========== 자동 급수/배수 공통 구조체 ==========
+#define WAIT_CLEAR_DURATION 5  // 감지 안됨 유지 시간 (초)
+
 struct AutoSystemConfig {
   uint32_t delayA;          // 연속 감지 필요 시간 (초)
   uint32_t durationB;       // 급수/배수 시간 (초)
@@ -107,14 +109,16 @@ struct AutoSystemConfig {
 
   enum State {
     IDLE,
+    WAIT_CLEAR,     // 센서 미감지 5초 유지 대기
     WAIT_SENSOR,
-    SENSOR_HOLD,    // 연속 감지 확인 상태 (새로 추가)
+    SENSOR_HOLD,    // 연속 감지 확인 상태
     PROCESSING,
     CYCLE_COMPLETE
   } state;
 
   unsigned long stateStartTime;
-  unsigned long sensorDetectedTime;  // 센서 감지 시작 시간 (새로 추가)
+  unsigned long sensorDetectedTime;  // 센서 감지 시작 시간
+  unsigned long sensorClearTime;     // 센서 미감지 시작 시간
   bool sensorDetected;
 };
 
@@ -786,15 +790,18 @@ void startAutoWatering() {
   autoWatering.enabled = true;
   autoWatering.running = true;
   autoWatering.currentCycle = 0;
-  autoWatering.state = AutoSystemConfig::WAIT_SENSOR;
+  autoWatering.state = AutoSystemConfig::WAIT_CLEAR;
   autoWatering.stateStartTime = millis();
   autoWatering.sensorDetected = false;
+  autoWatering.sensorClearTime = millis();
 
   setMotorDirection(1);  // 정회전
   setMotorSpeed(1);      // 속도1
 
   Serial.println("Motor started: Forward + Speed1");
-  Serial.println("Waiting for proximity sensor...");
+  Serial.print("Waiting for sensor clear (");
+  Serial.print(WAIT_CLEAR_DURATION);
+  Serial.println("s)...");
 }
 
 void stopAutoWatering() {
@@ -821,6 +828,24 @@ void processAutoWatering() {
   unsigned long elapsedTime = currentTime - autoWatering.stateStartTime;
 
   switch (autoWatering.state) {
+    case AutoSystemConfig::WAIT_CLEAR:
+      // 센서 미감지 5초 유지 대기
+      if (proximityState) {
+        // 감지됨 - 타이머 리셋
+        autoWatering.sensorClearTime = currentTime;
+      } else {
+        unsigned long clearTime = currentTime - autoWatering.sensorClearTime;
+        if (clearTime >= WAIT_CLEAR_DURATION * 1000UL) {
+          Serial.print("\n[Water] Sensor clear for ");
+          Serial.print(WAIT_CLEAR_DURATION);
+          Serial.println("s - Ready to detect");
+          autoWatering.state = AutoSystemConfig::WAIT_SENSOR;
+          autoWatering.stateStartTime = currentTime;
+          autoWatering.sensorDetected = false;
+        }
+      }
+      break;
+
     case AutoSystemConfig::WAIT_SENSOR:
       // 센서 감지 시작
       if (proximityState && !autoWatering.sensorDetected) {
@@ -840,7 +865,6 @@ void processAutoWatering() {
       if (proximityState) {
         unsigned long holdTime = currentTime - autoWatering.sensorDetectedTime;
         if (holdTime >= autoWatering.delayA * 1000) {
-          // ✅ 연속 감지 성공! 급수 시작
           Serial.print("Sensor held for ");
           Serial.print(autoWatering.delayA);
           Serial.println("s - Starting water supply!");
@@ -849,7 +873,6 @@ void processAutoWatering() {
           autoWatering.state = AutoSystemConfig::PROCESSING;
           autoWatering.stateStartTime = currentTime;
         }
-        // 아직 홀드 중... (1초마다 로그)
         else if (holdTime > 0 && holdTime % 1000 < 100) {
           static unsigned long lastLog = 0;
           if (currentTime - lastLog > 900) {
@@ -862,10 +885,10 @@ void processAutoWatering() {
           }
         }
       } else {
-        // ❌ 센서 풀림 - 노이즈였음, 리셋
-        Serial.println("Sensor released - resetting (noise?)");
+        Serial.println("Sensor released - back to WAIT_CLEAR");
         autoWatering.sensorDetected = false;
-        autoWatering.state = AutoSystemConfig::WAIT_SENSOR;
+        autoWatering.sensorClearTime = currentTime;
+        autoWatering.state = AutoSystemConfig::WAIT_CLEAR;
       }
       break;
 
@@ -882,10 +905,11 @@ void processAutoWatering() {
           autoWatering.running = false;
           autoWatering.state = AutoSystemConfig::IDLE;
         } else {
-          Serial.println("Preparing for next cycle...");
+          Serial.println("Preparing for next cycle (waiting for clear)...");
           setMotorDirection(1);  // 정회전
           setMotorSpeed(1);      // 속도1
-          autoWatering.state = AutoSystemConfig::WAIT_SENSOR;
+          autoWatering.sensorClearTime = currentTime;
+          autoWatering.state = AutoSystemConfig::WAIT_CLEAR;
           autoWatering.stateStartTime = currentTime;
           autoWatering.sensorDetected = false;
         }
@@ -899,6 +923,13 @@ void printWaterStatus() {
   if (autoWatering.running) {
     Serial.print("RUNNING - ");
     switch(autoWatering.state) {
+      case AutoSystemConfig::WAIT_CLEAR:
+        Serial.print("Waiting for clear (");
+        Serial.print((millis() - autoWatering.sensorClearTime) / 1000);
+        Serial.print("/");
+        Serial.print(WAIT_CLEAR_DURATION);
+        Serial.print("s)");
+        break;
       case AutoSystemConfig::WAIT_SENSOR:
         Serial.print("Waiting for sensor");
         break;
@@ -971,15 +1002,18 @@ void startAutoDrain() {
   autoDrain.enabled = true;
   autoDrain.running = true;
   autoDrain.currentCycle = 0;
-  autoDrain.state = AutoSystemConfig::WAIT_SENSOR;
+  autoDrain.state = AutoSystemConfig::WAIT_CLEAR;
   autoDrain.stateStartTime = millis();
   autoDrain.sensorDetected = false;
+  autoDrain.sensorClearTime = millis();
 
   setMotorDirection(2);  // 역회전
   setMotorSpeed(1);      // 속도1
 
   Serial.println("Motor started: Reverse + Speed1");
-  Serial.println("Waiting for proximity sensor...");
+  Serial.print("Waiting for sensor clear (");
+  Serial.print(WAIT_CLEAR_DURATION);
+  Serial.println("s)...");
 }
 
 void stopAutoDrain() {
@@ -1006,6 +1040,24 @@ void processAutoDrain() {
   unsigned long elapsedTime = currentTime - autoDrain.stateStartTime;
 
   switch (autoDrain.state) {
+    case AutoSystemConfig::WAIT_CLEAR:
+      // 센서 미감지 5초 유지 대기
+      if (proximityState) {
+        // 감지됨 - 타이머 리셋
+        autoDrain.sensorClearTime = currentTime;
+      } else {
+        unsigned long clearTime = currentTime - autoDrain.sensorClearTime;
+        if (clearTime >= WAIT_CLEAR_DURATION * 1000UL) {
+          Serial.print("\n[Drain] Sensor clear for ");
+          Serial.print(WAIT_CLEAR_DURATION);
+          Serial.println("s - Ready to detect");
+          autoDrain.state = AutoSystemConfig::WAIT_SENSOR;
+          autoDrain.stateStartTime = currentTime;
+          autoDrain.sensorDetected = false;
+        }
+      }
+      break;
+
     case AutoSystemConfig::WAIT_SENSOR:
       // 센서 감지 시작
       if (proximityState && !autoDrain.sensorDetected) {
@@ -1025,7 +1077,6 @@ void processAutoDrain() {
       if (proximityState) {
         unsigned long holdTime = currentTime - autoDrain.sensorDetectedTime;
         if (holdTime >= autoDrain.delayA * 1000) {
-          // ✅ 연속 감지 성공! 배수 시작
           Serial.print("Sensor held for ");
           Serial.print(autoDrain.delayA);
           Serial.println("s - Starting drain!");
@@ -1034,7 +1085,6 @@ void processAutoDrain() {
           autoDrain.state = AutoSystemConfig::PROCESSING;
           autoDrain.stateStartTime = currentTime;
         }
-        // 아직 홀드 중... (1초마다 로그)
         else if (holdTime > 0 && holdTime % 1000 < 100) {
           static unsigned long lastDrainLog = 0;
           if (currentTime - lastDrainLog > 900) {
@@ -1047,10 +1097,10 @@ void processAutoDrain() {
           }
         }
       } else {
-        // ❌ 센서 풀림 - 노이즈였음, 리셋
-        Serial.println("Sensor released - resetting (noise?)");
+        Serial.println("Sensor released - back to WAIT_CLEAR");
         autoDrain.sensorDetected = false;
-        autoDrain.state = AutoSystemConfig::WAIT_SENSOR;
+        autoDrain.sensorClearTime = currentTime;
+        autoDrain.state = AutoSystemConfig::WAIT_CLEAR;
       }
       break;
 
@@ -1067,10 +1117,11 @@ void processAutoDrain() {
           autoDrain.running = false;
           autoDrain.state = AutoSystemConfig::IDLE;
         } else {
-          Serial.println("Preparing for next cycle...");
+          Serial.println("Preparing for next cycle (waiting for clear)...");
           setMotorDirection(2);  // 역회전
           setMotorSpeed(1);      // 속도1
-          autoDrain.state = AutoSystemConfig::WAIT_SENSOR;
+          autoDrain.sensorClearTime = currentTime;
+          autoDrain.state = AutoSystemConfig::WAIT_CLEAR;
           autoDrain.stateStartTime = currentTime;
           autoDrain.sensorDetected = false;
         }
@@ -1084,6 +1135,13 @@ void printDrainStatus() {
   if (autoDrain.running) {
     Serial.print("RUNNING - ");
     switch(autoDrain.state) {
+      case AutoSystemConfig::WAIT_CLEAR:
+        Serial.print("Waiting for clear (");
+        Serial.print((millis() - autoDrain.sensorClearTime) / 1000);
+        Serial.print("/");
+        Serial.print(WAIT_CLEAR_DURATION);
+        Serial.print("s)");
+        break;
       case AutoSystemConfig::WAIT_SENSOR:
         Serial.print("Waiting for sensor");
         break;
