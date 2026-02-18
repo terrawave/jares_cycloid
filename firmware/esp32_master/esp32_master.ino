@@ -152,6 +152,9 @@ unsigned long lastDebugOutput = 0;
 volatile bool proximityChanged = false;
 volatile bool proximityInterruptState = false;
 
+// Serial 출력 재진입 방지 플래그
+volatile bool serialBusy = false;
+
 // ========== 함수 선언 (Forward Declaration) ==========
 void loadSlaveInfo();
 void saveSlaveInfo();
@@ -274,14 +277,17 @@ void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *data, int d
 
         slaveCount++;
 
-        Serial.print("✅ New device paired: ");
-        Serial.print(pairMsg.deviceName);
-        Serial.print(" [");
-        for (int i = 0; i < 6; i++) {
-          Serial.printf("%02X", mac_addr[i]);
-          if (i < 5) Serial.print(":");
+        {
+          String pairLog = "✅ New device paired: " + String(pairMsg.deviceName) + " [";
+          for (int i = 0; i < 6; i++) {
+            char macBuf[4];
+            sprintf(macBuf, "%02X", mac_addr[i]);
+            pairLog += macBuf;
+            if (i < 5) pairLog += ":";
+          }
+          pairLog += "]";
+          if (!serialBusy) { Serial.println(pairLog); }
         }
-        Serial.println("]");
       }
 
       // 페어링 응답 전송
@@ -327,8 +333,7 @@ void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *data, int d
             // MAC 주소 업데이트
             memcpy(slaves[i].macAddr, mac_addr, 6);
             deviceIndex = i;
-            Serial.print("📝 Updated MAC for ");
-            Serial.println(receivedData.deviceName);
+            if (!serialBusy) { Serial.println("📝 Updated MAC for " + String(receivedData.deviceName)); }
             break;
           }
         }
@@ -361,14 +366,17 @@ void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *data, int d
         deviceIndex = slaveCount;
         slaveCount++;
 
-        Serial.print("🆕 Auto-paired new device: ");
-        Serial.print(receivedData.deviceName);
-        Serial.print(" [");
-        for (int i = 0; i < 6; i++) {
-          Serial.printf("%02X", mac_addr[i]);
-          if (i < 5) Serial.print(":");
+        {
+          String autoPairLog = "🆕 Auto-paired new device: " + String(receivedData.deviceName) + " [";
+          for (int i = 0; i < 6; i++) {
+            char macBuf[4];
+            sprintf(macBuf, "%02X", mac_addr[i]);
+            autoPairLog += macBuf;
+            if (i < 5) autoPairLog += ":";
+          }
+          autoPairLog += "]";
+          if (!serialBusy) { Serial.println(autoPairLog); }
         }
-        Serial.println("]");
 
         // 페어링 응답 전송
         PairingMessage response;
@@ -386,21 +394,15 @@ void OnDataRecv(const esp_now_recv_info_t *recv_info, const uint8_t *data, int d
         slaves[deviceIndex].lastDataReceived = millis();
         slaves[deviceIndex].dataCount++;
 
-        Serial.print("📊 Data from ");
-        Serial.print(slaves[deviceIndex].deviceName);
-        Serial.print(" (#");
-        Serial.print(deviceIndex + 1);
-        Serial.print(") - Temp: ");
-        Serial.print(receivedData.temperature, 1);
-        Serial.print("°C, Humidity: ");
-        Serial.print(receivedData.humidity, 1);
-        Serial.print("%, CO2: ");
-        Serial.print(receivedData.co2);
-        Serial.print("ppm, Lux: ");
-        Serial.print(receivedData.lux, 0);
-        Serial.print("lux (Count: ");
-        Serial.print(slaves[deviceIndex].dataCount);
-        Serial.println(")");
+        // 뮤텍스로 보호하여 sendJSON()과 충돌 방지
+        String logMsg = "📊 Data from " + String(slaves[deviceIndex].deviceName)
+          + " (#" + String(deviceIndex + 1)
+          + ") - Temp: " + String(receivedData.temperature, 1)
+          + "°C, Humidity: " + String(receivedData.humidity, 1)
+          + "%, CO2: " + String(receivedData.co2)
+          + "ppm, Lux: " + String(receivedData.lux, 0)
+          + "lux (Count: " + String(slaves[deviceIndex].dataCount) + ")";
+        if (!serialBusy) { Serial.println(logMsg); }
       }
 
       break;
@@ -1257,67 +1259,53 @@ void readSensors() {
 
 // ========== 출력 함수 ==========
 void sendJSON() {
-  Serial.print("{");
+  // JSON을 String 버퍼에 조립 후 한 번에 전송 (인터럽트/ESP-NOW 충돌 방지)
+  String json = "{";
 
-  Serial.print("\"master\":{");
-  Serial.print("\"voltage\":");
-  Serial.print(voltage, 2);
-  Serial.print(",\"current\":");
-  Serial.print(current, 3);
-  Serial.print(",\"power\":");
-  Serial.print(power, 2);
-  Serial.print(",\"energy\":");
-  Serial.print(energy, 3);
-  Serial.print(",\"frequency\":");
-  Serial.print(frequency, 1);
-  Serial.print(",\"pf\":");
-  Serial.print(pf, 2);
-  Serial.print(",\"motor_adc\":");
-  Serial.print(motorSpeedValue);
-  Serial.print(",\"proximity\":");
-  Serial.print(proximityState ? 1 : 0);
-  Serial.print("},");
+  json += "\"master\":{";
+  json += "\"voltage\":" + String(voltage, 2);
+  json += ",\"current\":" + String(current, 3);
+  json += ",\"power\":" + String(power, 2);
+  json += ",\"energy\":" + String(energy, 3);
+  json += ",\"frequency\":" + String(frequency, 1);
+  json += ",\"pf\":" + String(pf, 2);
+  json += ",\"motor_adc\":" + String(motorSpeedValue);
+  json += ",\"proximity\":" + String(proximityState ? 1 : 0);
+  json += "},";
 
-  Serial.print("\"slaves\":[");
+  json += "\"slaves\":[";
   int connectedCount = 0;
   for (int i = 0; i < slaveCount; i++) {
     if (slaves[i].connected) {
-      if (connectedCount > 0) Serial.print(",");
-      Serial.print("{");
-      Serial.print("\"name\":\"");
-      Serial.print(slaves[i].deviceName);
-      Serial.print("\",\"temperature\":");
-      Serial.print(slaves[i].lastData.temperature, 1);
-      Serial.print(",\"humidity\":");
-      Serial.print(slaves[i].lastData.humidity, 1);
-      Serial.print(",\"co2\":");
-      Serial.print(slaves[i].lastData.co2);
-      Serial.print(",\"lux\":");
-      Serial.print(slaves[i].lastData.lux, 0);
-      Serial.print("}");
+      if (connectedCount > 0) json += ",";
+      json += "{";
+      json += "\"name\":\"" + String(slaves[i].deviceName) + "\"";
+      json += ",\"temperature\":" + String(slaves[i].lastData.temperature, 1);
+      json += ",\"humidity\":" + String(slaves[i].lastData.humidity, 1);
+      json += ",\"co2\":" + String(slaves[i].lastData.co2);
+      json += ",\"lux\":" + String(slaves[i].lastData.lux, 0);
+      json += "}";
       connectedCount++;
     }
   }
-  Serial.print("],");
+  json += "],";
 
-  Serial.print("\"relays\":[");
+  json += "\"relays\":[";
   for(int i = 0; i < 16; i++) {
-    Serial.print(getRelayState(i) ? 1 : 0);
-    if(i < 15) Serial.print(",");
+    json += String(getRelayState(i) ? 1 : 0);
+    if(i < 15) json += ",";
   }
-  Serial.print("],");
+  json += "],";
 
-  Serial.print("\"relay_hex\":\"0x");
-  Serial.print(relayStates, HEX);
-  Serial.print("\",");
+  json += "\"relay_hex\":\"0x" + String(relayStates, HEX) + "\",";
+  json += "\"water_running\":" + String(autoWatering.running ? 1 : 0);
+  json += ",\"drain_running\":" + String(autoDrain.running ? 1 : 0);
+  json += "}";
 
-  Serial.print("\"water_running\":");
-  Serial.print(autoWatering.running ? 1 : 0);
-
-  Serial.print(",\"drain_running\":");
-  Serial.print(autoDrain.running ? 1 : 0);
-
-  Serial.println("}");
+  // 플래그로 ESP-NOW 콜백의 Serial 출력 차단 후 한 번에 전송
+  serialBusy = true;
+  Serial.println(json);
+  serialBusy = false;
 }
 
 void printStatus() {
